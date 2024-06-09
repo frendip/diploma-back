@@ -17,3 +17,11 @@ export interface RawSubstation {
 export interface Substation extends Omit<RawSubstation, 'coordinates'> {
     coordinates: Coordinates;
 }
+
+export interface RawBase extends RawSubstation {
+    generators_count: number;
+}
+
+export interface Base extends Omit<RawBase, 'coordinates'> {
+    coordinates: Coordinates;
+}
