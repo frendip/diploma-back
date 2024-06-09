@@ -45,7 +45,7 @@ class RouterController {
             res.send({
                 success: true,
                 message: 'Router created successfully.',
-                route: {points, duration, distance}
+                data: {points, duration, distance}
             });
         } catch (err) {
             res.send({
