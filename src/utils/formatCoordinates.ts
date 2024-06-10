@@ -1,4 +1,4 @@
-import type {Coordinates, RawCoordinates} from '../types/subsations.types';
+import type {RawCoordinates, Coordinates} from '../types/map.types';
 
 export const transformCoordinates = (coordinates: RawCoordinates): Coordinates => {
     return [coordinates.x, coordinates.y];

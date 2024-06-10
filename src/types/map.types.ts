@@ -1,3 +1,10 @@
+export interface RawCoordinates {
+    x: number;
+    y: number;
+}
+
+export type Coordinates = [number, number];
+
 export type Point = [number, number];
 
 export interface RawStep {

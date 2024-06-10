@@ -1,9 +1,4 @@
-export interface RawCoordinates {
-    x: number;
-    y: number;
-}
-
-export type Coordinates = [number, number];
+import type {Coordinates, RawCoordinates} from './map.types';
 
 export type Status = 'active' | 'disabled' | 'waiting';
 
