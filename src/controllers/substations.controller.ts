@@ -28,6 +28,35 @@ class SubstationsController {
         }
     }
 
+    async getSubstationById(req: Request<{id: number}>, res: Response) {
+        try {
+            const substationId = req.params.id;
+
+            if (Number.isNaN(substationId)) {
+                return res.status(400).send({
+                    success: false,
+                    message: 'Invalid baseId.'
+                });
+            }
+
+            const substation = (await pool.query(`SELECT * from substations WHERE substation_id = $1`, [substationId]))
+                .rows[0] as RawSubstation;
+
+            if (!substation) {
+                return res.status(404).json({success: false, message: 'Substation not found'});
+            }
+
+            const formattedSubstation = {
+                ...substation,
+                coordinates: transformCoordinates(substation.coordinates)
+            } as Substation;
+
+            res.status(200).json({success: true, message: 'ok!', data: formattedSubstation});
+        } catch (err) {
+            res.status(500).json({success: false, message: `DB error`, err: err});
+        }
+    }
+
     async setSubstation(req: Request<{}, {}, Omit<Substation, 'substation_id'>>, res: Response) {
         try {
             const newSubstation = req.body;
@@ -71,38 +100,6 @@ class SubstationsController {
             })) as Base[];
 
             res.status(200).json({success: true, message: 'ok!', data: formattedBases});
-        } catch (err) {
-            res.status(500).json({success: false, message: `DB error`, err: err});
-        }
-    }
-
-    async getBaseById(req: Request<{id: number}>, res: Response) {
-        try {
-            const baseId = req.params.id;
-
-            if (Number.isNaN(baseId)) {
-                return res.status(400).send({
-                    success: false,
-                    message: 'Invalid baseId.'
-                });
-            }
-
-            const base = (
-                await pool.query(
-                    `SELECT * from substations 
-                JOIN bases ON substations.substation_id = bases.base_id
-                WHERE base_id = $1`,
-                    [baseId]
-                )
-            ).rows[0] as RawBase;
-
-            if (!base) {
-                return res.status(404).json({success: false, message: 'Base not found'});
-            }
-
-            const formattedBase = {...base, coordinates: transformCoordinates(base.coordinates)};
-
-            res.status(200).json({success: true, message: 'ok!', data: formattedBase});
         } catch (err) {
             res.status(500).json({success: false, message: `DB error`, err: err});
         }
