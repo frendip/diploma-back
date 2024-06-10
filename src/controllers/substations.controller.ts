@@ -28,23 +28,6 @@ class SubstationsController {
         }
     }
 
-    async getBases(req: Request, res: Response) {
-        try {
-            const bases = (
-                await pool.query(`SELECT * from substations 
-                JOIN bases ON substations.substation_id = bases.base_id`)
-            ).rows as RawBase[];
-
-            const formattedBases = bases.map((substation) => ({
-                ...substation,
-                coordinates: transformCoordinates(substation.coordinates)
-            })) as Base[];
-
-            res.status(200).json({success: true, message: 'ok!', data: formattedBases});
-        } catch (err) {
-            res.status(500).json({success: false, message: `DB error`, err: err});
-        }
-    }
     async setSubstation(req: Request<{}, {}, Omit<Substation, 'substation_id'>>, res: Response) {
         try {
             const newSubstation = req.body;
@@ -64,11 +47,62 @@ class SubstationsController {
             res.status(500).json({success: false, message: `DB error`, err: err});
         }
     }
+
     async deleteSubstation(req: Request<{}, {}, {substation_id: number}>, res: Response) {
         try {
             const {substation_id} = req.body;
             await pool.query(`DELETE FROM substations WHERE substation_id = $1`, [substation_id]);
             res.status(200).json({success: true, message: 'ok!'});
+        } catch (err) {
+            res.status(500).json({success: false, message: `DB error`, err: err});
+        }
+    }
+
+    async getBases(req: Request, res: Response) {
+        try {
+            const bases = (
+                await pool.query(`SELECT * from substations 
+                JOIN bases ON substations.substation_id = bases.base_id`)
+            ).rows as RawBase[];
+
+            const formattedBases = bases.map((substation) => ({
+                ...substation,
+                coordinates: transformCoordinates(substation.coordinates)
+            })) as Base[];
+
+            res.status(200).json({success: true, message: 'ok!', data: formattedBases});
+        } catch (err) {
+            res.status(500).json({success: false, message: `DB error`, err: err});
+        }
+    }
+
+    async getBaseById(req: Request<{id: number}>, res: Response) {
+        try {
+            const baseId = req.params.id;
+
+            if (Number.isNaN(baseId)) {
+                return res.status(400).send({
+                    success: false,
+                    message: 'Invalid baseId.'
+                });
+            }
+
+            const base = (
+                await pool.query(
+                    `SELECT * from substations 
+                JOIN bases ON substations.substation_id = bases.base_id
+                WHERE base_id = $1`,
+                    [baseId]
+                )
+            ).rows[0] as RawBase;
+
+            if (!base) {
+                return res.status(404).json({success: false, message: 'Base not found'});
+            }
+
+            const formattedBase = {...base, coordinates: transformCoordinates(base.coordinates)};
+
+            res.status(200).json({success: true, message: 'ok!', data: formattedBase});
         } catch (err) {
             res.status(500).json({success: false, message: `DB error`, err: err});
         }
