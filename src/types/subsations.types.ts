@@ -5,11 +5,13 @@ export interface RawCoordinates {
 
 export type Coordinates = [number, number];
 
+export type Status = 'active' | 'disabled' | 'waiting';
+
 export interface RawSubstation {
     substation_id: number;
     coordinates: RawCoordinates;
     address: string;
-    status: string;
+    status: Status;
     name: string;
     power: number;
 }
