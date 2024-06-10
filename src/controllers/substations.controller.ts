@@ -64,6 +64,15 @@ class SubstationsController {
             res.status(500).json({success: false, message: `DB error`, err: err});
         }
     }
+    async deleteSubstation(req: Request<{}, {}, {substation_id: number}>, res: Response) {
+        try {
+            const {substation_id} = req.body;
+            await pool.query(`DELETE FROM substations WHERE substation_id = $1`, [substation_id]);
+            res.status(200).json({success: true, message: 'ok!'});
+        } catch (err) {
+            res.status(500).json({success: false, message: `DB error`, err: err});
+        }
+    }
 }
 
 export default new SubstationsController();
