@@ -16,26 +16,44 @@ const handlerGetSubstationById = async (substationId: number): Promise<Substatio
         coordinates: transformCoordinates(substation.coordinates)
     } as Substation;
 };
+
+const handlerGetSubstations = async (status?: Substation['status'] | 'all'): Promise<Substation[]> => {
+    const substations = (await pool.query('SELECT * from substations')).rows as RawSubstation[];
+
+    const formattedSubstations = substations.map((substation) => ({
+        ...substation,
+        coordinates: transformCoordinates(substation.coordinates)
+    })) as Substation[];
+
+    let filteredSubstations: Substation[];
+    if (!status || status === 'all') {
+        filteredSubstations = formattedSubstations;
+    } else {
+        filteredSubstations = formattedSubstations.filter((substation) => substation.status === status);
+    }
+
+    return filteredSubstations;
+};
+
+const handlerGetBases = async (): Promise<Base[]> => {
+    const bases = (
+        await pool.query(`SELECT * from substations 
+        JOIN bases ON substations.substation_id = bases.base_id`)
+    ).rows as RawBase[];
+
+    return bases.map((substation) => ({
+        ...substation,
+        coordinates: transformCoordinates(substation.coordinates)
+    })) as Base[];
+};
 class SubstationsController {
     async getSubstations(req: Request<{}, {}, {}, {status?: Substation['status'] | 'all'}>, res: Response) {
         try {
-            const substations = (await pool.query('SELECT * from substations')).rows as RawSubstation[];
-
-            const formattedSubstations = substations.map((substation) => ({
-                ...substation,
-                coordinates: transformCoordinates(substation.coordinates)
-            })) as Substation[];
-
             const {status} = req.query;
 
-            let filteredSubstations: Substation[];
-            if (!status || status === 'all') {
-                filteredSubstations = formattedSubstations;
-            } else {
-                filteredSubstations = formattedSubstations.filter((substation) => substation.status === status);
-            }
+            const substations = await handlerGetSubstations(status);
 
-            res.status(200).json({success: true, message: 'ok!', data: filteredSubstations});
+            res.status(200).json({success: true, message: 'ok!', data: substations});
         } catch (err) {
             res.status(500).json({success: false, message: `DB error`, err: err});
         }
@@ -96,15 +114,7 @@ class SubstationsController {
 
     async getBases(req: Request, res: Response) {
         try {
-            const bases = (
-                await pool.query(`SELECT * from substations 
-                JOIN bases ON substations.substation_id = bases.base_id`)
-            ).rows as RawBase[];
-
-            const formattedBases = bases.map((substation) => ({
-                ...substation,
-                coordinates: transformCoordinates(substation.coordinates)
-            })) as Base[];
+            const formattedBases = await handlerGetBases();
 
             res.status(200).json({success: true, message: 'ok!', data: formattedBases});
         } catch (err) {
@@ -113,5 +123,5 @@ class SubstationsController {
     }
 }
 
-export {handlerGetSubstationById};
+export {handlerGetSubstations, handlerGetSubstationById, handlerGetBases};
 export default new SubstationsController();

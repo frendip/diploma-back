@@ -5,6 +5,7 @@ import carsRouter from './routes/cars.routes';
 import geocodeRouter from './routes/geocode.routes';
 import routerRouter from './routes/router.routes';
 import substationsRouter from './routes/substations.routes';
+import {fillDistanceMatrix} from './utils/fillDistanceMatrix';
 config();
 
 const PORT = process.env.PORT || '4000';
@@ -20,5 +21,8 @@ app.use('/cars', carsRouter);
 app.use('/geocode', geocodeRouter);
 
 app.listen(PORT, () => {
+    // setInterval(() => {
+    //     fillDistanceMatrix();
+    // }, 5000);
     console.log(`[server]: Server is running at http://localhost:${PORT}`);
 });
