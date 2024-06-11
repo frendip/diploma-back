@@ -7,5 +7,6 @@ router.get('/bases', substationsController.getBases);
 router.get('/', substationsController.getSubstations);
 router.get('/:id', substationsController.getSubstationById);
 router.post('/', substationsController.setSubstation);
+router.delete('/', substationsController.deleteSubstation);
 
 export default router;

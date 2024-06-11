@@ -84,9 +84,9 @@ class SubstationsController {
         }
     }
 
-    async deleteSubstation(req: Request<{}, {}, {substation_id: number}>, res: Response) {
+    async deleteSubstation(req: Request<{}, {}, {}, {substation_id: string}>, res: Response) {
         try {
-            const {substation_id} = req.body;
+            const substation_id = req.query.substation_id;
             await pool.query(`DELETE FROM substations WHERE substation_id = $1`, [substation_id]);
             res.status(200).json({success: true, message: 'ok!'});
         } catch (err) {
