@@ -1,6 +1,6 @@
+import {config} from 'dotenv';
 import type {Request, Response} from 'express';
 import type {Point, RawRoute} from '../types/map.types';
-import {config} from 'dotenv';
 config();
 
 class RouterController {
@@ -10,7 +10,7 @@ class RouterController {
 
             const formateWaypoints = (JSON.parse(waypoints) as Point[]).map((point) => point.reverse());
             if (formateWaypoints.length < 2) {
-                return res.status(401).send({
+                return res.status(401).json({
                     success: false,
                     message: 'There must be at least two waypoints.'
                 });
@@ -22,7 +22,7 @@ class RouterController {
 
             const routeRes = await fetch(routeUrl);
             if (routeRes.status !== 200) {
-                return res.status(500).send({
+                return res.status(500).json({
                     success: false,
                     message: 'Server error. Failed to build a route.'
                 });
@@ -42,13 +42,13 @@ class RouterController {
             let distance = rawLegs.flatMap((leg) => leg.steps).reduce((total, x) => total + x.length, 0);
             distance = Math.ceil(distance);
 
-            res.send({
+            res.status(200).json({
                 success: true,
                 message: 'Router created successfully.',
                 data: {points, duration, distance}
             });
         } catch (err) {
-            res.send({
+            res.status(500).json({
                 success: false,
                 message: 'Something went wrong',
                 error: err
