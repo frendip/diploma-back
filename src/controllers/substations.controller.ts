@@ -3,6 +3,19 @@ import {pool} from '../db';
 import type {Base, RawBase, RawSubstation, Substation} from '../types/subsations.types';
 import {transformCoordinates} from '../utils/formatCoordinates';
 
+const handlerGetSubstationById = async (substationId: number): Promise<Substation | undefined> => {
+    const substation = (await pool.query(`SELECT * from substations WHERE substation_id = $1`, [substationId]))
+        .rows[0] as RawSubstation;
+
+    if (!substation) {
+        return;
+    }
+
+    return {
+        ...substation,
+        coordinates: transformCoordinates(substation.coordinates)
+    } as Substation;
+};
 class SubstationsController {
     async getSubstations(req: Request<{}, {}, {}, {status?: Substation['status'] | 'all'}>, res: Response) {
         try {
@@ -39,19 +52,13 @@ class SubstationsController {
                 });
             }
 
-            const substation = (await pool.query(`SELECT * from substations WHERE substation_id = $1`, [substationId]))
-                .rows[0] as RawSubstation;
+            const substation = await handlerGetSubstationById(substationId);
 
             if (!substation) {
                 return res.status(404).json({success: false, message: 'Substation not found'});
             }
 
-            const formattedSubstation = {
-                ...substation,
-                coordinates: transformCoordinates(substation.coordinates)
-            } as Substation;
-
-            res.status(200).json({success: true, message: 'ok!', data: formattedSubstation});
+            res.status(200).json({success: true, message: 'ok!', data: substation});
         } catch (err) {
             res.status(500).json({success: false, message: `DB error`, err: err});
         }
@@ -106,4 +113,5 @@ class SubstationsController {
     }
 }
 
+export {handlerGetSubstationById};
 export default new SubstationsController();
