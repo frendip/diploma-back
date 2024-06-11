@@ -1,6 +1,13 @@
 import {Request, Response} from 'express';
 import {pool} from '../db';
-import type {RawCar, Car, CarRoute, RawCarRoute} from '../types/cars.types';
+import type {
+    RawCar,
+    Car,
+    CarRoute,
+    RawCarRoute,
+    RawRepairingSubstation,
+    RepairingSubstation
+} from '../types/cars.types';
 import {transformCoordinates} from '../utils/formatCoordinates';
 import {handlerGetSubstationById} from './substations.controller';
 
@@ -81,6 +88,41 @@ class CarsController {
             } as CarRoute;
 
             res.status(200).json({success: true, message: 'ok!', data: formattedRoute});
+        } catch (err) {
+            res.status(500).json({success: false, message: `DB error`, err: err});
+        }
+    }
+    async getCarRepairingSubstation(req: Request<{id: number}>, res: Response) {
+        try {
+            const carId = req.params.id;
+
+            if (Number.isNaN(carId)) {
+                return res.status(400).send({
+                    success: false,
+                    message: 'Invalid carId.'
+                });
+            }
+
+            const repairingData = (await pool.query(`SELECT * from repairing_substations WHERE car_id=$1`, [carId]))
+                .rows[0] as RawRepairingSubstation;
+
+            if (!repairingData) {
+                return res.status(404).json({success: false, message: 'Repairing substation data not found'});
+            }
+
+            const repairingSubstation = await handlerGetSubstationById(repairingData.substation_id);
+
+            if (!repairingSubstation) {
+                return res.status(404).json({success: false, message: 'Repairing substation not found'});
+            }
+
+            const formattedRepairingSubstation = {
+                repairing_substation_id: repairingData.repairing_substation_id,
+                car_id: repairingData.car_id,
+                substation: repairingSubstation
+            } as RepairingSubstation;
+
+            res.status(200).json({success: true, message: 'ok!', data: formattedRepairingSubstation});
         } catch (err) {
             res.status(500).json({success: false, message: `DB error`, err: err});
         }
