@@ -36,3 +36,13 @@ export interface RawRepairingSubstation {
 export interface RepairingSubstation extends Omit<RawRepairingSubstation, 'substation_id'> {
     substation: Substation;
 }
+
+export interface RawCarWithMatrix extends RawCar {
+    duration_time: number;
+    distance: number;
+    base_name: string;
+}
+
+export interface CarWithMatrix extends Omit<RawCarWithMatrix, 'coordinates'> {
+    coordinates: Coordinates;
+}
