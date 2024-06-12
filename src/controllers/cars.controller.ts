@@ -1,9 +1,9 @@
 import {Request, Response} from 'express';
 import {pool} from '../db';
 import type {
-    RawCar,
     Car,
     CarRoute,
+    RawCar,
     RawCarRoute,
     RawRepairingSubstation,
     RepairingSubstation
@@ -123,6 +123,27 @@ class CarsController {
             } as RepairingSubstation;
 
             res.status(200).json({success: true, message: 'ok!', data: formattedRepairingSubstation});
+        } catch (err) {
+            res.status(500).json({success: false, message: `DB error`, err: err});
+        }
+    }
+    async updateCar(req: Request<{id: number}, {}, Omit<Car, 'car_id'>>, res: Response) {
+        try {
+            const car_id = req.params.id;
+            const car = req.body;
+            await pool.query(
+                'UPDATE cars SET coordinates = $1, status = $2, driver_name=$3, generator_name = $4, generator_power = $5, base_id = $6 WHERE car_id = $7',
+                [
+                    `(${car.coordinates.join(',')})`,
+                    car.status,
+                    car.driver_name,
+                    car.generator_name,
+                    car.generator_power,
+                    car.base_id,
+                    car_id
+                ]
+            );
+            res.status(200).json({success: true, message: 'ok!'});
         } catch (err) {
             res.status(500).json({success: false, message: `DB error`, err: err});
         }

@@ -1,8 +1,8 @@
 import {Request, Response} from 'express';
 import {pool} from '../db';
+import type {CarWithMatrix, RawCarWithMatrix} from '../types/cars.types';
 import type {Base, RawBase, RawSubstation, Substation} from '../types/subsations.types';
 import {transformCoordinates} from '../utils/formatCoordinates';
-import type {CarWithMatrix, RawCarWithMatrix} from '../types/cars.types';
 
 const handlerGetSubstationById = async (substationId: number): Promise<Substation | undefined> => {
     const substation = (await pool.query(`SELECT * from substations WHERE substation_id = $1`, [substationId]))
@@ -103,6 +103,27 @@ class SubstationsController {
         }
     }
 
+    async updateSubstation(req: Request<{id: number}, {}, Omit<Substation, 'substation_id'>>, res: Response) {
+        try {
+            const substation_id = req.params.id;
+            const substation = req.body;
+            await pool.query(
+                'UPDATE substations SET coordinates = $1, status = $2, power=$3, name = $4, address = $5 WHERE substation_id = $6',
+                [
+                    `(${substation.coordinates.join(',')})`,
+                    substation.status,
+                    substation.power,
+                    substation.name,
+                    substation.address,
+                    substation_id
+                ]
+            );
+            res.status(200).json({success: true, message: 'ok!'});
+        } catch (err) {
+            res.status(500).json({success: false, message: `DB error`, err: err});
+        }
+    }
+
     async deleteSubstation(req: Request<{}, {}, {}, {substation_id: string}>, res: Response) {
         try {
             const substation_id = req.query.substation_id;
@@ -159,5 +180,5 @@ class SubstationsController {
     }
 }
 
-export {handlerGetSubstations, handlerGetSubstationById, handlerGetBases};
+export {handlerGetBases, handlerGetSubstationById, handlerGetSubstations};
 export default new SubstationsController();
