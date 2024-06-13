@@ -21,9 +21,10 @@ export const setDbData = async () => {
         await pool.query(`TRUNCATE TABLE ${table} RESTART IDENTITY CASCADE`);
     }
 
+    await pool.query(`TRUNCATE TABLE distance_matrix RESTART IDENTITY CASCADE`);
+
     for (let table of tables.reverse()) {
         const expression = readFileSync(path.join(__dirname, `/sql/${table}.table.sql`), 'utf8');
-        console.log(expression);
         await pool.query(expression);
     }
 };

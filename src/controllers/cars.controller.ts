@@ -10,6 +10,7 @@ import type {
 } from '../types/cars.types';
 import {transformCoordinates} from '../utils/formatCoordinates';
 import {handlerGetSubstationById} from './substations.controller';
+import {mockDriveRoute} from '../utils/mockDriveRoute';
 
 class CarsController {
     async getCars(req: Request, res: Response) {
@@ -92,6 +93,32 @@ class CarsController {
             res.status(500).json({success: false, message: `DB error`, err: err});
         }
     }
+    async setCarRoute(req: Request<{id: number}, {}, Omit<RawCarRoute, 'cars_route_id' | 'car_id'>>, res: Response) {
+        try {
+            const carId = req.params.id;
+
+            if (Number.isNaN(carId)) {
+                return res.status(400).send({
+                    success: false,
+                    message: 'Invalid carId.'
+                });
+            }
+
+            const routePointsId = req.body;
+
+            await pool.query(
+                'INSERT INTO cars_routes (car_id, start_substation_id, end_substation_id) VALUES ($1, $2, $3)',
+                [carId, routePointsId.start_substation_id, routePointsId.end_substation_id]
+            );
+
+            mockDriveRoute(routePointsId.start_substation_id, routePointsId.end_substation_id, carId);
+
+            res.status(200).json({success: true, message: 'ok!'});
+        } catch (err) {
+            res.status(500).json({success: false, message: `DB error`, err: err});
+        }
+    }
+
     async getCarRepairingSubstation(req: Request<{id: number}>, res: Response) {
         try {
             const carId = req.params.id;
@@ -130,6 +157,14 @@ class CarsController {
     async updateCar(req: Request<{id: number}, {}, Omit<Car, 'car_id'>>, res: Response) {
         try {
             const car_id = req.params.id;
+
+            if (Number.isNaN(car_id)) {
+                return res.status(400).send({
+                    success: false,
+                    message: 'Invalid carId.'
+                });
+            }
+
             const car = req.body;
             await pool.query(
                 'UPDATE cars SET coordinates = $1, status = $2, driver_name=$3, generator_name = $4, generator_power = $5, base_id = $6 WHERE car_id = $7',

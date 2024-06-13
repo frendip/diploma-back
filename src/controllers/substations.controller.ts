@@ -106,6 +106,14 @@ class SubstationsController {
     async updateSubstation(req: Request<{id: number}, {}, Omit<Substation, 'substation_id'>>, res: Response) {
         try {
             const substation_id = req.params.id;
+
+            if (Number.isNaN(substation_id)) {
+                return res.status(400).send({
+                    success: false,
+                    message: 'Invalid substationId.'
+                });
+            }
+
             const substation = req.body;
             await pool.query(
                 'UPDATE substations SET coordinates = $1, status = $2, power=$3, name = $4, address = $5 WHERE substation_id = $6',
