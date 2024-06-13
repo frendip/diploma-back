@@ -1,4 +1,6 @@
 import {config} from 'dotenv';
+import {readFileSync} from 'fs';
+import path from 'path';
 import {Pool} from 'pg';
 config();
 
@@ -11,3 +13,17 @@ export const pool = new Pool({
     password: DB_PASS,
     ssl: true
 });
+
+const tables = ['substations', 'bases', 'cars', 'cars_routes', 'repairing_substations'];
+
+export const setDbData = async () => {
+    for (let table of tables.reverse()) {
+        await pool.query(`TRUNCATE TABLE ${table} RESTART IDENTITY CASCADE`);
+    }
+
+    for (let table of tables.reverse()) {
+        const expression = readFileSync(path.join(__dirname, `/sql/${table}.table.sql`), 'utf8');
+        console.log(expression);
+        await pool.query(expression);
+    }
+};

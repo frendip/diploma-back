@@ -1,13 +1,12 @@
 import cors from 'cors';
+import {config} from 'dotenv';
 import express from 'express';
+import http from 'http';
+import SocketController from './controllers/socket.controller';
 import carsRouter from './routes/cars.routes';
 import geocodeRouter from './routes/geocode.routes';
 import routerRouter from './routes/router.routes';
 import substationsRouter from './routes/substations.routes';
-import {fillDistanceMatrix} from './utils/fillDistanceMatrix';
-import http from 'http';
-import {config} from 'dotenv';
-import SocketController from './controllers/socket.controller';
 config();
 
 const PORT = process.env.PORT || '4000';
@@ -34,5 +33,7 @@ HTTP.listen(PORT, () => {
     // setInterval(() => {
     //     fillDistanceMatrix();
     // }, 5000);
+
+    // setDbData();
     console.log(`[server]: Server is running at http://localhost:${PORT}`);
 });
