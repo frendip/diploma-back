@@ -31,3 +31,9 @@ export interface RawRoute {
         };
     };
 }
+
+export interface Route {
+    points: Point[];
+    duration: number;
+    distance: number;
+}

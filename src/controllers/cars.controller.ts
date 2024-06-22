@@ -11,6 +11,8 @@ import type {
 import {transformCoordinates} from '../utils/formatCoordinates';
 import {handlerGetSubstationById} from './substations.controller';
 import {mockDriveRoute} from '../utils/mockDriveRoute';
+import {handlerRouter} from './router.controller';
+import SocketController from './socket.controller';
 
 class CarsController {
     async getCars(req: Request, res: Response) {
@@ -62,30 +64,31 @@ class CarsController {
                 });
             }
 
-            const route = (await pool.query(`SELECT * from cars_routes WHERE car_id=$1`, [carId]))
+            const carRoute = (await pool.query(`SELECT * from cars_routes WHERE car_id=$1`, [carId]))
                 .rows[0] as RawCarRoute;
 
-            if (!route) {
+            if (!carRoute) {
                 return res.status(404).json({success: false, message: 'Car route not found'});
             }
 
-            const startSubstation = await handlerGetSubstationById(route.start_substation_id);
+            const startSubstation = await handlerGetSubstationById(carRoute.start_substation_id);
 
             if (!startSubstation) {
                 return res.status(404).json({success: false, message: 'Car start substation not found'});
             }
 
-            const endSubstation = await handlerGetSubstationById(route.end_substation_id);
+            const endSubstation = await handlerGetSubstationById(carRoute.end_substation_id);
 
             if (!endSubstation) {
                 return res.status(404).json({success: false, message: 'Car end substation not found'});
             }
 
             const formattedRoute = {
-                cars_route_id: route.cars_route_id,
-                car_id: route.car_id,
+                cars_route_id: carRoute.cars_route_id,
+                car_id: carRoute.car_id,
                 start_substation: startSubstation,
-                end_substation: endSubstation
+                end_substation: endSubstation,
+                route: carRoute.route
             } as CarRoute;
 
             res.status(200).json({success: true, message: 'ok!', data: formattedRoute});
@@ -106,12 +109,26 @@ class CarsController {
 
             const routePointsId = req.body;
 
+            const startSubstation = await handlerGetSubstationById(routePointsId.start_substation_id);
+            const endSubstation = await handlerGetSubstationById(routePointsId.end_substation_id);
+
+            if (!startSubstation || !endSubstation) {
+                if (Number.isNaN(carId)) {
+                    return res.status(400).send({
+                        success: false,
+                        message: 'Invalid substations id.'
+                    });
+                }
+            }
+
+            const route = await handlerRouter([startSubstation!.coordinates, endSubstation!.coordinates]);
+
             await pool.query(
-                'INSERT INTO cars_routes (car_id, start_substation_id, end_substation_id) VALUES ($1, $2, $3)',
-                [carId, routePointsId.start_substation_id, routePointsId.end_substation_id]
+                'INSERT INTO cars_routes (car_id, start_substation_id, end_substation_id, route) VALUES ($1, $2, $3, $4)',
+                [carId, routePointsId.start_substation_id, routePointsId.end_substation_id, route]
             );
 
-            mockDriveRoute(routePointsId.start_substation_id, routePointsId.end_substation_id, carId);
+            // mockDriveRoute(routePointsId.start_substation_id, routePointsId.end_substation_id, carId);
 
             res.status(200).json({success: true, message: 'ok!'});
         } catch (err) {
@@ -178,6 +195,9 @@ class CarsController {
                     car_id
                 ]
             );
+
+            SocketController.UpdateCarCoordinates({carId: car_id, newCoordinates: car.coordinates});
+
             res.status(200).json({success: true, message: 'ok!'});
         } catch (err) {
             res.status(500).json({success: false, message: `DB error`, err: err});

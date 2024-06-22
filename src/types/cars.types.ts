@@ -1,5 +1,5 @@
-import type {Coordinates, RawCoordinates} from './map.types';
-import type {RawSubstation, Substation} from './subsations.types';
+import type {Coordinates, RawCoordinates, Route} from './map.types';
+import type {Substation} from './subsations.types';
 
 export interface RawCar {
     car_id: number;
@@ -20,6 +20,7 @@ export interface RawCarRoute {
     car_id: number;
     start_substation_id: number;
     end_substation_id: number;
+    route: Route;
 }
 
 export interface CarRoute extends Omit<RawCarRoute, 'start_substation_id' | 'end_substation_id'> {
