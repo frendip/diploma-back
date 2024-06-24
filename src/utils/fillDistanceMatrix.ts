@@ -7,39 +7,48 @@ export const fillDistanceMatrix = async () => {
             base_id: base.substation_id,
             coordinates: base.coordinates
         }));
-        const substations = (await handlerGetSubstations()).map((substation) => ({
+        const allSubstations = (await handlerGetSubstations()).map((substation) => ({
             substation_id: substation.substation_id,
             coordinates: substation.coordinates
         }));
 
-        const distanceMatrixUrl = new URL('https://api.routing.yandex.net/v2/distancematrix');
-        distanceMatrixUrl.searchParams.set('apikey', process.env.ROUTER_API_KEY!);
-        distanceMatrixUrl.searchParams.set('origins', bases.map((base) => base.coordinates.reverse()).join('|'));
-        distanceMatrixUrl.searchParams.set(
-            'destinations',
-            substations.map((substation) => substation.coordinates.reverse()).join('|')
-        );
+        await pool.query('TRUNCATE TABLE distance_matrix'); // Clear the table once at the beginning
 
-        const res = await fetch(distanceMatrixUrl);
-        const data = (await res.json()).rows;
+        const CHUNK_SIZE = 10; // Max number of substations per request
 
-        const baseDistanceMatrix = data.map((row) =>
-            row.elements.map((element) => ({distance: element.distance.value, duration: element.duration.value}))
-        );
+        for (let i = 0; i < allSubstations.length; i += CHUNK_SIZE) {
+            const substationsChunk = allSubstations.slice(i, i + CHUNK_SIZE);
 
-        await pool.query('TRUNCATE TABLE distance_matrix');
+            const distanceMatrixUrl = new URL('https://api.routing.yandex.net/v2/distancematrix');
+            distanceMatrixUrl.searchParams.set('apikey', process.env.ROUTER_API_KEY!);
+            distanceMatrixUrl.searchParams.set('origins', bases.map((base) => base.coordinates.reverse()).join('|'));
+            distanceMatrixUrl.searchParams.set(
+                'destinations',
+                substationsChunk.map((substation) => substation.coordinates.reverse()).join('|')
+            );
 
-        for (const [baseIndex, base] of baseDistanceMatrix.entries()) {
-            for (const [substationIndex, substation] of base.entries()) {
-                await pool.query(
-                    `INSERT INTO distance_matrix (substation_id, base_id, duration_time, distance) VALUES ($1, $2, $3, $4)`,
-                    [
-                        substations[substationIndex].substation_id,
-                        bases[baseIndex].base_id,
-                        substation.duration,
-                        substation.distance
-                    ]
-                );
+            const res = await fetch(distanceMatrixUrl);
+            const data = (await res.json()).rows;
+
+            const baseDistanceMatrix = data.map((row) =>
+                row.elements.map((element) => ({
+                    distance: element.distance.value,
+                    duration: element.duration.value
+                }))
+            );
+
+            for (const [baseIndex, base] of baseDistanceMatrix.entries()) {
+                for (const [substationIndex, substation] of base.entries()) {
+                    await pool.query(
+                        `INSERT INTO distance_matrix (substation_id, base_id, duration_time, distance) VALUES ($1, $2, $3, $4)`,
+                        [
+                            substationsChunk[substationIndex].substation_id,
+                            bases[baseIndex].base_id,
+                            substation.duration,
+                            substation.distance
+                        ]
+                    );
+                }
             }
         }
     } catch (err) {
